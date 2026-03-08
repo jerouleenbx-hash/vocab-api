@@ -1,0 +1,170 @@
+/*M!999999\- enable the sandbox mode */ 
+-- MariaDB dump 10.19  Distrib 10.6.23-MariaDB, for debian-linux-gnu (x86_64)
+--
+-- Host: localhost    Database: vocab_api
+-- ------------------------------------------------------
+-- Server version	10.6.23-MariaDB-0ubuntu0.22.04.1
+
+/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
+/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
+/*!40101 SET NAMES utf8mb4 */;
+/*!40103 SET @OLD_TIME_ZONE=@@TIME_ZONE */;
+/*!40103 SET TIME_ZONE='+00:00' */;
+/*!40014 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0 */;
+/*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
+/*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
+/*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
+
+--
+-- Table structure for table `doctrine_migration_versions`
+--
+
+DROP TABLE IF EXISTS `doctrine_migration_versions`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `doctrine_migration_versions` (
+  `version` varchar(191) NOT NULL,
+  `executed_at` datetime DEFAULT NULL,
+  `execution_time` int(11) DEFAULT NULL,
+  PRIMARY KEY (`version`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `doctrine_migration_versions`
+--
+
+LOCK TABLES `doctrine_migration_versions` WRITE;
+/*!40000 ALTER TABLE `doctrine_migration_versions` DISABLE KEYS */;
+INSERT INTO `doctrine_migration_versions` VALUES ('DoctrineMigrations\\Version20260303134720','2026-03-03 13:47:22',329);
+/*!40000 ALTER TABLE `doctrine_migration_versions` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `messenger_messages`
+--
+
+DROP TABLE IF EXISTS `messenger_messages`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `messenger_messages` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `body` longtext NOT NULL,
+  `headers` longtext NOT NULL,
+  `queue_name` varchar(190) NOT NULL,
+  `created_at` datetime NOT NULL,
+  `available_at` datetime NOT NULL,
+  `delivered_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `IDX_75EA56E0FB7336F0E3BD61CE16BA31DBBF396750` (`queue_name`,`available_at`,`delivered_at`,`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `messenger_messages`
+--
+
+LOCK TABLES `messenger_messages` WRITE;
+/*!40000 ALTER TABLE `messenger_messages` DISABLE KEYS */;
+/*!40000 ALTER TABLE `messenger_messages` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `user`
+--
+
+DROP TABLE IF EXISTS `user`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `user` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `email` varchar(180) NOT NULL,
+  `password_hash` varchar(255) NOT NULL,
+  `roles` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL CHECK (json_valid(`roles`)),
+  `created_at` datetime NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `UNIQ_8D93D649E7927C74` (`email`)
+) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `user`
+--
+
+LOCK TABLES `user` WRITE;
+/*!40000 ALTER TABLE `user` DISABLE KEYS */;
+INSERT INTO `user` VALUES (7,'test@example.com','$2y$13$Y7xDBJrN.Epm10aHNmKPROMXhFI3pqa/6KItiVW/98wbM3xXNGpqC','[\"ROLE_USER\"]','2026-03-06 14:02:44');
+/*!40000 ALTER TABLE `user` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `word`
+--
+
+DROP TABLE IF EXISTS `word`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `word` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `value` varchar(255) NOT NULL,
+  `definition` longtext NOT NULL,
+  `example_sentence` longtext NOT NULL,
+  `difficulty` smallint(6) NOT NULL,
+  `created_at` datetime NOT NULL,
+  `user_id` int(11) NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `IDX_C3F17511A76ED395` (`user_id`),
+  CONSTRAINT `FK_C3F17511A76ED395` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=33 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `word`
+--
+
+LOCK TABLES `word` WRITE;
+/*!40000 ALTER TABLE `word` DISABLE KEYS */;
+INSERT INTO `word` VALUES (20,'meticulous','very attentive to detail','He was extremely meticulous when preparing the report.',1,'2026-03-06 14:02:44',7),(21,'arduous','very difficult and tiring','Climbing the mountain was an arduous task.',1,'2026-03-06 14:02:44',7),(22,'eloquent','fluent and persuasive in speaking','She gave an eloquent speech at the ceremony.',1,'2026-03-06 14:02:44',7),(23,'resilient','able to recover quickly from difficulties','Children are often very resilient.',1,'2026-03-06 14:02:44',7),(24,'ambiguous','open to more than one interpretation','The ending of the movie was ambiguous.',1,'2026-03-06 14:02:44',7),(25,'apple','A fruit that is red, green, or yellow','I eat an apple every morning.',1,'2026-03-06 14:02:44',7),(26,'book','A set of written pages bound together','She borrowed a book from the library.',1,'2026-03-06 14:02:44',7),(27,'computer','An electronic device for storing and processing data','I bought a new computer last week.',2,'2026-03-06 14:02:44',7),(28,'dream','A series of thoughts and images occurring in sleep','He had a strange dream last night.',2,'2026-03-06 14:02:44',7),(29,'elephant','A very large gray mammal with a trunk','The elephant walked slowly through the forest.',2,'2026-03-06 14:02:44',7),(30,'flower','The seed-bearing part of a plant','The garden is full of colorful flowers.',1,'2026-03-06 14:02:44',7),(31,'arduous','very difficult and tiring','Climbing the mountain was an arduous task.',1,'2026-03-07 12:34:15',7),(32,'','ttetetet','',1,'2026-03-07 12:34:57',7);
+/*!40000 ALTER TABLE `word` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `word_progress`
+--
+
+DROP TABLE IF EXISTS `word_progress`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `word_progress` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `user_id` int(11) NOT NULL,
+  `word_id` int(11) NOT NULL,
+  `correct` int(11) NOT NULL,
+  `last_seen_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `IDX_PROGRESS_USER` (`user_id`),
+  KEY `IDX_PROGRESS_WORD` (`word_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=23 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `word_progress`
+--
+
+LOCK TABLES `word_progress` WRITE;
+/*!40000 ALTER TABLE `word_progress` DISABLE KEYS */;
+INSERT INTO `word_progress` VALUES (18,7,20,0,'2026-03-06 14:02:44'),(19,7,21,0,'2026-03-06 14:02:44'),(20,7,22,0,'2026-03-06 14:02:44'),(21,7,23,0,'2026-03-06 14:02:44'),(22,7,24,0,'2026-03-06 14:02:44');
+/*!40000 ALTER TABLE `word_progress` ENABLE KEYS */;
+UNLOCK TABLES;
+/*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
+
+/*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
+/*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
+/*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+/*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
+
+-- Dump completed on 2026-03-07 13:39:19
