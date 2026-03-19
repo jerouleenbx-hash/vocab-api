@@ -2,9 +2,9 @@
 
 namespace App\Repository;
 
-use App\Infrastructure\Persistence\Doctrine\WordProgress;
-use App\Infrastructure\Persistence\Doctrine\User;
-use App\Infrastructure\Persistence\Doctrine\Word;
+use App\Entity\WordProgress;
+use App\Entity\User;
+use App\Entity\Word;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -29,32 +29,15 @@ class WordProgressRepository extends ServiceEntityRepository
     /**
      * Met à jour ou crée un WordProgress
      */
-    public function setCorrect(User $user, Word $word, bool $correct): WordProgress
+    public function setScore(User $user, Word $word, int $score): WordProgress
     {
-        $progress = $this->findProgress($user, $word);
-
-        if (!$progress) {
+        $wordProgress =  findProgress($user, $word);
+        if (!wordProgress) {
             $progress = new WordProgress($user, $word);
-            $this->_em->persist($progress);
         }
-
-        $progress->setCorrect($correct);
+        $progress->setScore($score);
         $progress->setLastSeenAt(new \DateTimeImmutable());
-
         $this->_em->flush();
-
         return $progress;
-    }
-
-    /**
-     * Récupère tous les WordProgress d'un utilisateur
-     */
-    public function findAllByUser(User $user): array
-    {
-        return $this->createQueryBuilder('wp')
-            ->andWhere('wp.user = :user')
-            ->setParameter('user', $user)
-            ->getQuery()
-            ->getResult();
     }
 }

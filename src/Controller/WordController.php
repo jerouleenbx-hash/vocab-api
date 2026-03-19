@@ -2,9 +2,9 @@
 
 namespace App\Controller;
 
-use App\Infrastructure\Persistence\Doctrine\Word;
-use App\Infrastructure\Persistence\Doctrine\WordProgress;
-use App\Infrastructure\Persistence\Doctrine\User;
+use App\Entity\Word;
+use App\Entity\WordProgress;
+use App\Entity\User;
 use App\Repository\WordRepository;
 use App\Repository\WordProgressRepository;
 use Doctrine\ORM\EntityManagerInterface;
@@ -12,8 +12,9 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Attribute\Route;
+use DateTime;
 
-#[Route('/api/words')]
+#[Route('/api/wordds')]
 class WordController extends AbstractController
 {
     #[Route('', methods: ['GET'])]
@@ -28,7 +29,9 @@ class WordController extends AbstractController
             'example' => $word->getExampleSentence(),
             'difficulty' => $word->getDifficulty(),
             'type' => $word->getType(),
+            'tags' => $word->getTags(),
         ], $words);
+
 
         return $this->json($data);
     }
@@ -55,6 +58,7 @@ class WordController extends AbstractController
             $data['example'] ?? '',
             $data['difficulty'] ?? '',
             $data['type'] ?? '',
+            $data['tags'] ?? '',
         );
 
         $em->persist($word);
@@ -64,23 +68,24 @@ class WordController extends AbstractController
             'status' => 'created',
             'id' => $word->getId()
         ]);
-    }
+    }   
 
-    #[Route('/{id}', methods: ['GET'])]
-    public function show(WordRepository $wordRepository, int $id): JsonResponse
+    #[Route('/progress', methods: ['GET'])]
+    public function show(WordProgressRepository $wordProgressRepository): JsonResponse
     {
-        $word = $wordRepository->find($id);
-        if (!$word) {
-            return $this->json(['error' => 'Word not found'], 404);
-        }
+        $progress = $wordProgressRepository->findAll();
+        
+        $data = array_map(fn(WordProgress $progress) => [
+            'id' => $progress->getId(),
+            'word' => $progress->getWord()->getId(),
+            'date' => $progress->getLastSeenAt(),
+            'score' => $progress->isScore(),
+            'userid' => $progress->getUser(),
+        ], $progress);
 
-        return $this->json([
-            'id' => $word->getId(),
-            'word' => $word->getValue(),
-            'definition' => $word->getDefinition(),
-            'example' => $word->getExampleSentence(),
-            'difficulty' => $word->getDifficulty(),
-            'type' => $word->getType(),
-        ]);
+        return $this->json($data);
     }
+
+
+
 }

@@ -2,9 +2,9 @@
 
 namespace App\Service;
 
-use App\Infrastructure\Persistence\Doctrine\User;
-use App\Infrastructure\Persistence\Doctrine\Word;
-use App\Infrastructure\Persistence\Doctrine\WordProgress;
+use App\Entity\User;
+use App\Entity\Word;
+use App\Entity\WordProgress;
 use App\Repository\WordRepository;
 use App\Repository\WordProgressRepository;
 use Doctrine\ORM\EntityManagerInterface;
@@ -24,7 +24,7 @@ class QuizService
 
     public function answer(User $user, Word $word, string $answer): bool
     {
-        $isCorrect = strtolower($answer) === strtolower($word->getWord());
+        $isScore = strtolower($answer) === strtolower($word->getWord());
 
         $progress = $this->progressRepository->findOneBy([
             'user' => $user,
@@ -37,10 +37,10 @@ class QuizService
             $progress->setWord($word);
         }
 
-        if ($isCorrect) {
-            $progress->setCorrect($progress->getCorrect() + 1);
+        if ($isScore) {
+            $progress->setScore($progress->getScore() + 1);
         } else {
-            $progress->setCorrect(0);
+            $progress->setScore(0);
         }
 
         $progress->setLastSeenAt(new \DateTime());
@@ -48,7 +48,7 @@ class QuizService
         $this->em->persist($progress);
         $this->em->flush();
 
-        return $isCorrect;
+        return $isScore;
     }
 
     public function getMultipleChoice(User $user): array
@@ -73,5 +73,47 @@ class QuizService
             'example' => $word->getExampleSentence(),
             'choices' => $choices
         ];
+    }
+
+
+    public function buildChoices(array $word, array $allWordsByType): array
+    {
+        $candidates = $allWordsByType[$word['type']] ?? [];
+
+        $candidates = array_filter($candidates, fn($w) => $w['id'] !== $word['id']);
+
+        // Score de similarité
+        usort($candidates, function ($a, $b) use ($word) {
+            return $this->similarity($b['value'], $word['value'])
+                <=> $this->similarity($a['value'], $word['value']);
+        });
+
+        $wrong = [];
+        $used = [$word['definition']];
+
+        foreach ($candidates as $c) {
+            if (count($wrong) >= 3) break;
+
+            if (!in_array($c['definition'], $used, true)) {
+                $wrong[] = $c['definition'];
+                $used[] = $c['definition'];
+            }
+        }
+
+        while (count($wrong) < 3) {
+            $wrong[] = "---";
+        }
+
+        $choices = array_merge($wrong, [$word['definition']]);
+        shuffle($choices);
+
+        return $choices;
+    }
+
+    private function similarity($a, $b): float
+    {
+        $lev = levenshtein($a, $b);
+        $len = max(strlen($a), strlen($b));
+        return 1 - ($lev / $len);
     }
 }

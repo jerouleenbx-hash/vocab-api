@@ -1,9 +1,11 @@
 <?php
 
-namespace App\Infrastructure\Persistence\Doctrine;
+namespace App\Entity;
 
 use App\Repository\WordRepository;
 use Doctrine\ORM\Mapping as ORM;
+use App\Entity\User; 
+
 
 #[ORM\Entity(repositoryClass: WordRepository::class)]
 #[ORM\Table(name: 'word')]
@@ -32,7 +34,10 @@ class Word
     private string $difficulty = '';
 
       #[ORM\Column(length: 255)]
-    private string $type;
+    private string $type = '';
+
+    #[ORM\Column(length: 2000, nullable: true)]
+    private ?string $tags = null;
 
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
@@ -43,7 +48,8 @@ class Word
         string $definition,
         string $exampleSentence,
         string $difficulty,
-        string $type
+        string $type,
+        string $tags
     ) {
         $this->user = $user;
         $this->value = $value;
@@ -51,6 +57,7 @@ class Word
         $this->exampleSentence = $exampleSentence;
         $this->difficulty = $difficulty;
         $this->type = $type;
+        $this->tags = $tags;
         $this->createdAt = new \DateTimeImmutable();
     }
 
@@ -61,4 +68,5 @@ class Word
     public function getExampleSentence(): string { return $this->exampleSentence; }
     public function getDifficulty(): string { return $this->difficulty; }
     public function getType(): string { return $this->type; }
+    public function getTags(): ?string { return $this->tags; }
 }

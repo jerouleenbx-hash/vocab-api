@@ -2,9 +2,9 @@
 
 namespace App\Controller;
 
-use App\Infrastructure\Persistence\Doctrine\Word;
-use App\Infrastructure\Persistence\Doctrine\WordProgress;
-use App\Infrastructure\Persistence\Doctrine\User;
+use App\Entity\Word;
+use App\Entity\WordProgress;
+use App\Entity\User;
 use App\Repository\WordRepository;
 use App\Repository\WordProgressRepository;
 use Doctrine\ORM\EntityManagerInterface;
@@ -34,7 +34,7 @@ class QuizController extends AbstractController
 
         $data = json_decode($request->getContent(), true);
         $wordId = $data['word_id'] ?? null;
-        $correct = $data['correct'] ?? false;
+        $score = $data['score'] ?? false;
 
         if (!$wordId) {
             return $this->json(['error' => 'Missing word_id'], 400);
@@ -45,17 +45,10 @@ class QuizController extends AbstractController
             return $this->json(['error' => 'Word not found'], 404);
         }
 
-        $progress = $progressRepository->findOneBy([
-            'user' => $user,
-            'word' => $word,
-        ]);
+        $progress = new WordProgress($user, $word);
+        $em->persist($progress);
 
-        if (!$progress) {
-            $progress = new WordProgress($user, $word);
-            $em->persist($progress);
-        }
-
-        $progress->setCorrect($correct);
+        $progress->setScore($score);
         $progress->setLastSeenAt(new \DateTimeImmutable());
 
         $em->flush();
@@ -63,7 +56,7 @@ class QuizController extends AbstractController
         return $this->json([
             'message' => 'Progress updated',
             'word_id' => $word->getId(),
-            'correct' => $correct,
+            'score' => $score,
         ]);
     }
 }

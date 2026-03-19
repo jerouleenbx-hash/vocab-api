@@ -9,7 +9,7 @@
         "ext-iconv": "*",
         "doctrine/doctrine-bundle": "^3.2",
         "doctrine/doctrine-migrations-bundle": "*",
-        "doctrine/orm": "^3.6",
+        "doctrine/orm": "^3.6.2",
         "fakerphp/faker": "^1.24",
         "nelmio/cors-bundle": "^2.6",
         "phpdocumentor/reflection-docblock": "^6.0",
