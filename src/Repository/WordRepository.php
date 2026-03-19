@@ -112,6 +112,55 @@ class WordRepository extends ServiceEntityRepository
         return $conn->executeQuery($sql, $params)->fetchAllAssociative();
     }
 
+
+    /**
+     * Get a list of words with (optional) difficulty and tag for one specific user
+     */
+    public function findByTagAndDifficulty(?string $difficulty, ?string $tag, User $user): array
+    {
+        $conn = $this->getEntityManager()->getConnection();
+
+        $sql = "
+            SELECT distinct
+                w.id,
+                w.value,
+                w.definition,
+                w.difficulty as level,
+                w.type,
+                w.tags,
+                w.example_sentence,
+                wp.score,
+                wp.stability,
+                wp.reps,
+                wp.lapses,
+                wp.difficulty,
+                wp.last_review
+            FROM word w
+            LEFT JOIN word_progress wp 
+                ON wp.word_id = w.id 
+                AND wp.user_id = :user
+            WHERE 1 = 1
+        ";
+
+        $params = [
+            'user' => $user->getId(),
+        ];
+
+        if ($tag) {
+            $sql .= " AND w.tags LIKE :tag";
+            $params['tag'] = '%' . $tag . '%';
+        }
+
+        if ($difficulty && $difficulty !== 'All') {
+            $sql .= " AND w.difficulty = :difficulty";
+            $params['difficulty'] = $difficulty;
+        }
+
+        $sql .= " ORDER BY w.difficulty ASC";
+
+        return $conn->executeQuery($sql, $params)->fetchAllAssociative();
+    }
+
     /**
      * Get a list of words with (optional) difficulty and tag for one specific user
      */
@@ -130,7 +179,7 @@ class WordRepository extends ServiceEntityRepository
                 w.example_sentence,
                 wp.score
             FROM word w
-            INNER JOIN word_progress wp 
+            LEFT JOIN word_progress wp 
                 ON wp.word_id = w.id 
                 AND wp.user_id = :user
             WHERE 1 = 1

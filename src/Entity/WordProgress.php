@@ -23,9 +23,6 @@ class WordProgress
     #[ORM\Column(type: 'integer')]
     private int $score = 0;
 
-    #[ORM\Column(type: 'datetime_immutable')]
-    private \DateTimeImmutable $lastSeenAt;
-
     #[ORM\Column]
     private ?float $stability = null;
 
@@ -74,16 +71,6 @@ class WordProgress
     public function setScore(int $score) : void
     {
         $this->score = $score;
-    }
-
-    public function getLastSeenAt(): \DateTimeImmutable
-    {
-        return $this->lastSeenAt;
-    }
-
-    public function setLastSeenAt(\DateTimeImmutable $lastSeenAt): void
-    {
-        $this->lastSeenAt = $lastSeenAt;
     }
 
     public function getStability(): ?float

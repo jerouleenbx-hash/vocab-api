@@ -32,38 +32,13 @@ class MainController extends AbstractController
      * Méthode appelée pour avoir tous les mots
      */
     #[Route('/words', name: 'api_words')]
-    public function words(Request $request, WordRepository $wordRepository): JsonResponse
-    {
-        $tag = $request->query->get('tag');     // récupère ?tag=...
-        $difficulty = $request->query->get('level');
-
-        //$words = $wordRepository->findByFilters($tag, $difficulty);
-        $words = $wordRepository->findAll();
-
-        $data = array_map(fn(Word $word) => [
-            'id' => $word->getId(),
-            'word' => $word->getValue(),
-            'definition' => $word->getDefinition(),
-            'example' => $word->getExampleSentence(),
-            'difficulty' => $difficulty,
-            'type' => $word->getType(),
-            'tags' => $word->getTags(),
-        ], $words);
-
-        return $this->json($data);
-    }
-
-
-    /**
-     * Méthode appelée à chaque réponse pour mettre à jour le score
-     */
-    #[Route('/answer_old', methods: ['POST'])]
-    public function answer_old(
-        Request $request,
+    public function words(
+        Request $request, 
         WordRepository $wordRepository,
-        WordProgressRepository $progressRepository,
-        EntityManagerInterface $em
-    ): JsonResponse {
+        EntityManagerInterface $em,        
+        \App\Service\FSRSService $fsrs
+        ): JsonResponse
+    {
         $user = $this->getUser();
         if (!$user) {
             $user = $em->getRepository(User::class)->find(1); // fallback test
@@ -72,131 +47,33 @@ class MainController extends AbstractController
             }
         }
 
-        $data = json_decode($request->getContent(), true);
-        $wordId = $data['word_id'] ?? null;
-        $score = $data['score'] ?? 0;
+        $tag = $request->query->get('tag');     // récupère ?tag=...
+        $difficulty = $request->query->get('level');        
 
-        if (!$wordId) {
-            return $this->json(['error' => 'Missing word_id'], 400);
+        $words = $wordRepository->findByTagAndDifficulty($difficulty, $tag,  $user);        
+
+        $data = [];
+
+        foreach ($words as $word) {
+            $masteryScore = $fsrs->masteryScore($word);
+            $data[] = [
+                'id' => $word['id'],
+                'word' => $word['value'],
+                'definition' => $word['definition'],
+                'difficulty' => $word['level'],
+                'type' => $word['type'],
+                'tags' => $word['tags'],
+                'example_sentence' => $word['example_sentence'],
+                'score' => $masteryScore,
+            ];
         }
 
-        $word = $wordRepository->find($wordId);
-        if (!$word) {
-            return $this->json(['error' => 'Word not found'], 404);
-        }
-
-        $progress = $em->getRepository(WordProgress::class)->findProgress($user, $word);
-        if (!$progress) {
-            $progress = new WordProgress($user, $word);            
-        }
-        $em->persist($progress);
-        $progress->setScore($score);
-        $progress->setLastSeenAt(new \DateTimeImmutable());
-        $em->flush();
-
-        return $this->json([
-            'message' => 'Progress updated',
-            'word_id' => $word->getId(),
-            'score' => $score,
-        ]);
+        return $this->json($data);
     }
 
-#[Route('/quiz/prioritized', methods: ['GET'])]
-public function getPrioritizedQuizWords(
-    Request $request,
-    WordRepository $wordRepository,
-    EntityManagerInterface $em
-): JsonResponse {
 
-    $level = $request->query->get('level');
-    $tag = $request->query->get('tag');
-
-    $user = $this->getUser();
-    if (!$user) {
-        $user = $em->getRepository(User::class)->find(1);
-        if (!$user) {
-            return $this->json(['error' => 'No user in database'], 400);
-        }
-    }
-
-    // ⚡ Requête optimisée (tableaux)
-    $filteredWords = $wordRepository->findByDifficultyAndTagOrderedByScore($level, $tag, $user);
-
-    $allWords = $wordRepository->findAllByType($user);
-
-    $allWordsByType = [];
-
-    foreach ($allWords as $w) {
-        $allWordsByType[$w['type']][] = $w;
-    }
-
-    if (empty($filteredWords)) {
-        return $this->json(['error' => 'No words found'], 404);
-    }
-
-    // 🔥 Pré-groupement par type (évite O(n²))
-    $wordsByType = [];
-    foreach ($filteredWords as $w) {
-        $wordsByType[$w['type']][] = $w;
-    }
-
-    $result = [];
-
-    foreach ($filteredWords as $word) {
-
-        // 7.1. mots du même type
-        $sameTypeWords = $allWordsByType[$word['type']] ?? [];
-        // Exclure le mot courant
-        $sameTypeWords = array_filter($sameTypeWords, function($w) use ($word) {
-            return $w['id'] !== $word['id'];
-        });
-
-        shuffle($sameTypeWords);
-
-        // 7.2. choix uniques
-        $wrongChoices = [];
-        $usedDefinitions = [$word['definition']];
-
-        foreach ($sameTypeWords as $w) {
-            if (count($wrongChoices) >= 3) break;
-
-            $definition = $w['definition'];
-
-            if (!in_array($definition, $usedDefinitions, true)) {
-                $wrongChoices[] = $definition;
-                $usedDefinitions[] = $definition;
-            }
-        }
-
-        // 7.3. fallback
-        while (count($wrongChoices) < 3) {
-            $wrongChoices[] = "---";
-        }
-
-        // 7.4. mélange
-        $allChoices = array_merge($wrongChoices, [$word['definition']]);
-        shuffle($allChoices);
-
-        // 7.5. résultat
-        $result[] = [
-            'id' => $word['id'],
-            'word' => $word['value'],
-            'definition' => $word['definition'],
-            'difficulty' => $word['difficulty'],
-            'type' => $word['type'],
-            'tags' => $word['tags'],
-            'example' => $word['example_sentence'],
-            'choices' => $allChoices,
-        ];
-    }
-
-    return $this->json($result);
-}
-
-
-
-    #[Route('/quiz/fsrs', methods: ['GET'])]
-    public function quizFSRS(
+    #[Route('/quiz/definition', methods: ['GET'])]
+    public function quizDefinition(
         Request $request,
         WordRepository $repo,
         QuizService $quizService,
@@ -230,7 +107,7 @@ public function getPrioritizedQuizWords(
 
         foreach ($words as $word) {
 
-            $choices = $quizService->buildChoices($word, $byType);
+            $choices = $quizService->buildChoicesDefinition($word, $byType);
 
             $result[] = [
                 'id' => $word['id'],
@@ -239,7 +116,60 @@ public function getPrioritizedQuizWords(
                 'difficulty' => $word['difficulty'],
                 'type' => $word['type'],
                 'tags' => $word['tags'],
-                'example_sentence' => $word['example_sentence'],
+                'example' => $word['example_sentence'],
+                'choices' => $choices,
+            ];
+        }
+
+        return $this->json($result);
+    }
+
+
+    #[Route('/quiz/word', methods: ['GET'])]
+    public function quizWord(
+        Request $request,
+        WordRepository $repo,
+        QuizService $quizService,
+        EntityManagerInterface $em
+    ): JsonResponse {
+
+        $user = $this->getUser();
+        if (!$user) {
+            $user = $em->getRepository(User::class)->find(1); // fallback test
+            if (!$user) {
+                return $this->json(['error' => 'No user in database'], 400);
+            }
+        }
+
+        $level = $request->query->get('level');
+        $tag = $request->query->get('tag');
+
+        $words = $repo->findQuizWordsFSRS($level, $tag, $user->getId());
+
+        // ⚡ charger tous les mots pour les choix
+        $allWords = $em->getConnection()
+            ->executeQuery("SELECT id, value, definition, example_sentence, type FROM word")
+            ->fetchAllAssociative();
+
+        $byType = [];
+        foreach ($allWords as $w) {
+            $byType[$w['type']][] = $w;
+        }
+
+        $result = [];
+
+        foreach ($words as $word) {
+
+            $choices = $quizService->buildChoicesWord($word, $byType);
+
+            $result[] = [
+                'id' => $word['id'],
+                'word' => $word['value'],
+                'definition' => $word['definition'],
+                'difficulty' => $word['difficulty'],
+                'type' => $word['type'],
+                'tags' => $word['tags'],
+                'example' => $word['example_sentence'],
                 'choices' => $choices,
             ];
         }
@@ -300,7 +230,8 @@ public function getPrioritizedQuizWords(
                     next_review = :next_review,
                     last_review = :last_review,
                     reps = :reps,
-                    lapses = :lapses
+                    lapses = :lapses,
+                    score = :score
                 WHERE user_id = :user AND word_id = :word
             ", [
                 'stability' => $updated['stability'],
@@ -310,15 +241,16 @@ public function getPrioritizedQuizWords(
                 'reps' => $updated['reps'],
                 'lapses' => $progress['lapses'],
                 'user' => $user->getId(),
-                'word' => $wordId
+                'word' => $wordId,
+                'score' => $grade
             ]);
 
         } else {
 
             $conn->executeStatement("
                 INSERT INTO word_progress 
-                (user_id, word_id, stability, difficulty, next_review, last_review, reps, lapses)
-                VALUES (:user, :word, :stability, :difficulty, :next_review, :last_review, :reps, 0)
+                (user_id, word_id, stability, difficulty, next_review, last_review, reps, score, lapses)
+                VALUES (:user, :word, :stability, :difficulty, :next_review, :last_review, :reps, :score, 0)
             ", [
                 'user' => $user->getId(),
                 'word' => $wordId,
@@ -326,7 +258,8 @@ public function getPrioritizedQuizWords(
                 'difficulty' => $updated['difficulty'],
                 'next_review' => $updated['next_review']->format('Y-m-d H:i:s'),
                 'last_review' => $updated['last_review']->format('Y-m-d H:i:s'),
-                'reps' => $updated['reps']
+                'reps' => $updated['reps'],
+                'score' => $grade
             ]);
         }
 
@@ -338,4 +271,5 @@ public function getPrioritizedQuizWords(
             'difficulty' => $updated['difficulty']
         ]);
     }
+
 }
