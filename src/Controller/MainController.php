@@ -13,6 +13,10 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Attribute\Route;
 use App\Service\QuizService;
+use Symfony\Component\Serializer\SerializerInterface;
+use Symfony\Component\Validator\Validator\ValidatorInterface; 
+use App\Service\WordService; 
+
 
 #[Route('/api')]
 class MainController extends AbstractController
@@ -272,4 +276,35 @@ class MainController extends AbstractController
         ]);
     }
 
+
+    #[Route('/import', name: 'import', methods: ['POST'])]
+    public function import(
+        Request $request,
+        WordService $wordImportService,
+        EntityManagerInterface $em
+    ): JsonResponse {
+        $user = $this->getUser();
+        if (!$user) {
+            $user = $em->getRepository(User::class)->find(1); // fallback test
+            if (!$user) {
+                return $this->json(['error' => 'No user in database'], 400);
+            }
+        }
+
+        // Récupère le fichier depuis la requête FormData
+        $file = $request->files->get('file');
+
+        if (!$file) {
+            return $this->json(['error' => 'No file uploaded.'], 400);
+        }
+
+        $filePath = $file->getRealPath();
+
+        try {
+            $wordImportService->importFromCsv($filePath, $user);
+            return $this->json(['message' => 'CSV imported successfully!'], 200);
+        } catch (\Exception $e) {
+            return $this->json(['error' => 'An error occurred during import.'], 500);
+        }
+    }
 }
