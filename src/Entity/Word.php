@@ -9,7 +9,6 @@ use App\Entity\User;
 
 #[ORM\Entity(repositoryClass: WordRepository::class)]
 #[ORM\Table(name: 'word')]
-#[ORM\UniqueConstraint(name: 'user_word_unique', columns: ['user_id', 'value'])]
 class Word
 {
     #[ORM\Id]
@@ -33,12 +32,15 @@ class Word
     #[ORM\Column(type: 'text')]
     private string $difficulty = '';
 
-      #[ORM\Column(length: 255)]
+    #[ORM\Column(length: 255)]
     private string $type = '';
+
+    #[ORM\Column(length: 255)]
+    private string $category;
 
     #[ORM\Column(length: 2000, nullable: true)]
     private ?string $tags = null;
-
+    
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
 
@@ -49,6 +51,7 @@ class Word
         string $exampleSentence,
         string $difficulty,
         string $type,
+        string $category,
         string $tags
     ) {
         $this->user = $user;
@@ -57,6 +60,7 @@ class Word
         $this->exampleSentence = $exampleSentence;
         $this->difficulty = $difficulty;
         $this->type = $type;
+        $this->category = $category;
         $this->tags = $tags;
         $this->createdAt = new \DateTimeImmutable();
     }
@@ -68,5 +72,6 @@ class Word
     public function getExampleSentence(): string { return $this->exampleSentence; }
     public function getDifficulty(): string { return $this->difficulty; }
     public function getType(): string { return $this->type; }
+    public function getCategory(): string { return $this->category; }
     public function getTags(): ?string { return $this->tags; }
 }

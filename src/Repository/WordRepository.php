@@ -128,6 +128,7 @@ class WordRepository extends ServiceEntityRepository
                 w.difficulty as level,
                 w.type,
                 w.tags,
+                w.category,
                 w.example_sentence,
                 wp.score,
                 wp.stability,
@@ -175,6 +176,7 @@ class WordRepository extends ServiceEntityRepository
                 w.definition,
                 w.difficulty,
                 w.type,
+                w.category,
                 w.tags,
                 w.example_sentence,
                 wp.score
@@ -215,6 +217,7 @@ class WordRepository extends ServiceEntityRepository
                 w.value,
                 w.definition,
                 w.type,
+                w.category,
                 w.tags,
                 w.difficulty,
                 w.example_sentence,

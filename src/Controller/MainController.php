@@ -65,6 +65,7 @@ class MainController extends AbstractController
                 'word' => $word['value'],
                 'definition' => $word['definition'],
                 'difficulty' => $word['level'],
+                'category' => $word['category'],
                 'type' => $word['type'],
                 'tags' => $word['tags'],
                 'example_sentence' => $word['example_sentence'],
@@ -99,7 +100,7 @@ class MainController extends AbstractController
 
         // ⚡ charger tous les mots pour les choix
         $allWords = $em->getConnection()
-            ->executeQuery("SELECT id, value, definition, example_sentence, type FROM word")
+            ->executeQuery("SELECT id, value, definition, example_sentence, type, category FROM word")
             ->fetchAllAssociative();
 
         $byType = [];
@@ -118,6 +119,7 @@ class MainController extends AbstractController
                 'word' => $word['value'],
                 'definition' => $word['definition'],
                 'difficulty' => $word['difficulty'],
+                'category' => $word['category'],
                 'type' => $word['type'],
                 'tags' => $word['tags'],
                 'example' => $word['example_sentence'],
@@ -152,7 +154,7 @@ class MainController extends AbstractController
 
         // ⚡ charger tous les mots pour les choix
         $allWords = $em->getConnection()
-            ->executeQuery("SELECT id, value, definition, example_sentence, type FROM word")
+            ->executeQuery("SELECT id, value, definition, example_sentence, typ, category FROM word")
             ->fetchAllAssociative();
 
         $byType = [];
@@ -172,6 +174,7 @@ class MainController extends AbstractController
                 'definition' => $word['definition'],
                 'difficulty' => $word['difficulty'],
                 'type' => $word['type'],
+                'category' => $word['category'],
                 'tags' => $word['tags'],
                 'example' => $word['example_sentence'],
                 'choices' => $choices,
@@ -303,8 +306,9 @@ class MainController extends AbstractController
         try {
             $wordImportService->importFromCsv($filePath, $user);
             return $this->json(['message' => 'CSV imported successfully!'], 200);
-        } catch (\Exception $e) {
-            return $this->json(['error' => 'An error occurred during import.'], 500);
+        } catch (\Exception $e) {            
+            //return $this->json(['error' => 'An error occurred during import.'], 500);
+            return $this->json(['error' => $e->getMessage()], 500);
         }
     }
 }

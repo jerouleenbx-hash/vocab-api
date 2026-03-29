@@ -15,44 +15,52 @@ class WordService
         private LoggerInterface $logger
     ) {}
 
-
-     public function importFromCsv(string $filePath, User $user): void
+    public function importFromCsv(string $filePath, User $user): void
     {
-        $csv = Reader::createFromPath($filePath, 'r');
-        $csv->setHeaderOffset(0);
+        try {
+            $csv = Reader::createFromPath($filePath, 'r');
+            $csv->setDelimiter(';'); 
+            $csv->setHeaderOffset(0);
 
-        foreach ($csv as $record) {
-            $value = $record['value'] ?? '';
-            $difficulty = $record['difficulty'] ?? '';
-            $type = $record['type'] ?? '';
-            $tags = $record['tags'] ?? null;
+            foreach ($csv as $record) {
+                $value = $record['value'] ?? '';
+                $difficulty = $record['difficulty'] ?? '';
+                $type = $record['type'] ?? '';
+                $category = $record['category'] ?? '';
+                $tags = $record['tags'] ?? null;
 
-            // Vérifie si le mot existe déjà pour cet utilisateur
-            $existingWord = $this->entityManager->getRepository(Word::class)
-                ->findOneBy(['user' => $user, 'value' => $value]);
+                // Vérifie si le mot existe déjà pour cet utilisateur
+                $existingWord = $this->entityManager->getRepository(Word::class)
+                    ->findOneBy(['user' => $user, 'value' => $value]);
 
-            if ($existingWord) {
-                $this->logger->info(sprintf(
-                    'Word "%s" already exists for user %d. Skipping.',
+                if ($existingWord) {
+                    $this->logger->info(sprintf(
+                        'Word "%s" already exists for user %d. Skipping.',
+                        $value,
+                        $user->getId()
+                    ));
+                    continue; // Passe au mot suivant
+                }
+
+                // Crée un nouveau mot
+                $word = new Word(
+                    $user,
                     $value,
-                    $user->getId()
-                ));
-                continue; // Passe au mot suivant
+                    $record['definition'] ?? '',
+                    $record['example_sentence'] ?? '',
+                    $difficulty,
+                    $type,                    
+                    $category,
+                    $tags
+                );
+
+                $this->entityManager->persist($word);
             }
-
-            // Crée un nouveau mot
-            $word = new Word(
-                $user,
-                $value,
-                $record['definition'] ?? '',
-                $record['example_sentence'] ?? '',
-                $difficulty,
-                $type,
-                $tags
-            );
-
-            $this->entityManager->persist($word);
+        } catch (\Exception $e) {                        
+            $this->logger->info($e);
         }
+
+        $this->logger->info(sprintf('OK'));
 
         $this->entityManager->flush();
     }
