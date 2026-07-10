@@ -165,7 +165,7 @@ class WordRepository extends ServiceEntityRepository
     /**
      * Get a list of words with (optional) difficulty and tag for one specific user
      */
-    public function findByDifficultyAndTagOrderedByScore(?string $difficulty, ?string $tag, User $user): array
+    public function findByDifficultyAndTagOrderedByScore(?string $difficulty, ?string $tag, int $userId): array
     {
         $conn = $this->getEntityManager()->getConnection();
 
@@ -187,9 +187,7 @@ class WordRepository extends ServiceEntityRepository
             WHERE 1 = 1
         ";
 
-        $params = [
-            'user' => $user->getId(),
-        ];
+        $params = ['user' => $userId];
 
         if ($tag) {
             $sql .= " AND w.tags LIKE :tag";
@@ -201,7 +199,7 @@ class WordRepository extends ServiceEntityRepository
             $params['difficulty'] = $difficulty;
         }
 
-        $sql .= " ORDER BY wp.score DESC";
+        $sql .= " ORDER BY wp.score ASC, RAND()";
 
         return $conn->executeQuery($sql, $params)->fetchAllAssociative();
     }
@@ -210,7 +208,7 @@ class WordRepository extends ServiceEntityRepository
     public function findQuizWordsFSRS(?string $difficulty, ?string $tag, int $userId): array
     {
         $conn = $this->getEntityManager()->getConnection();
-
+        
         $sql = "
             SELECT 
                 w.id,
@@ -244,9 +242,10 @@ class WordRepository extends ServiceEntityRepository
 
         $sql .= "
             ORDER BY 
-                wp.next_review IS NULL DESC,
+                /* wp.next_review IS NULL DESC,
                 wp.next_review ASC,
-                wp.stability ASC
+                wp.stability ASC  */
+                score, RAND()
             LIMIT 20
         ";
 

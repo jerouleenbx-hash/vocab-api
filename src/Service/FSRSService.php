@@ -2,8 +2,12 @@
 
 namespace App\Service;
 
+use Psr\Log\LoggerInterface;
+
 class FSRSService
 {
+    public function __construct(private LoggerInterface $logger) {}
+
     public function update(array $p, int $grade): array
     {
         $now = new \DateTime();
@@ -11,6 +15,7 @@ class FSRSService
         // Initialisation
         $S = $p['stability'] ?? 0.1;
         $D = $p['difficulty'] ?? 5.0;
+        $score = $p['score'] ?? 0;
 
         // 0-3 = échec / 4-5 = réussite
         if ($grade < 3) {
@@ -23,15 +28,25 @@ class FSRSService
             $D = max(1, $D - 0.1 * ($grade - 3));
         }
 
+        $score += $grade;
+        if ($score < -1) 
+            $score = -1;
+        if ($score > 3)
+            $score = 3;
+
         // Intervalle basé sur stabilité
         $intervalDays = max(1, round($S));
+
+        $this->logger->error("**** FSRS update computed S={$S}, D={$D}, score={$score}, intervalDays={$intervalDays}, grade={$grade}");
+
 
         return [
             'stability' => $S,
             'difficulty' => $D,
             'next_review' => $now->modify("+$intervalDays days"),
             'last_review' => new \DateTime(),
-            'reps' => ($p['reps'] ?? 0) + 1
+            'reps' => ($p['reps'] ?? 0) + 1,
+            'score' => $score
         ];
     }
 

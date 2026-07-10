@@ -28,10 +28,12 @@ class WordService
                 $type = $record['type'] ?? '';
                 $category = $record['category'] ?? '';
                 $tags = $record['tags'] ?? null;
+                $definition = $record['definition'] ?? '';
+                $example_sentence = $record['example_sentence'] ?? '';
 
                 // Vérifie si le mot existe déjà pour cet utilisateur
                 $existingWord = $this->entityManager->getRepository(Word::class)
-                    ->findOneBy(['user' => $user, 'value' => $value]);
+                    ->findOneBy(['user' => $user, 'value' => $value, 'definition' => $definition, 'tags' => $tags]);
 
                 if ($existingWord) {
                     $this->logger->info(sprintf(
@@ -46,8 +48,8 @@ class WordService
                 $word = new Word(
                     $user,
                     $value,
-                    $record['definition'] ?? '',
-                    $record['example_sentence'] ?? '',
+                    $definition,
+                    $example_sentence,
                     $difficulty,
                     $type,                    
                     $category,

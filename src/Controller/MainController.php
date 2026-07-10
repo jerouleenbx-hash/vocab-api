@@ -35,8 +35,7 @@ class MainController extends AbstractController
     /**
      * Méthode appelée pour avoir tous les mots
      */
-    #[Route('/words', name: 'api_words')]
-    public function words(
+    #[Route('/words', name: 'api_words', methods: ['GET'])]    public function words(
         Request $request, 
         WordRepository $wordRepository,
         EntityManagerInterface $em,        
@@ -59,7 +58,7 @@ class MainController extends AbstractController
         $data = [];
 
         foreach ($words as $word) {
-            $masteryScore = $fsrs->masteryScore($word);
+            //$masteryScore = $fsrs->masteryScore($word);
             $data[] = [
                 'id' => $word['id'],
                 'word' => $word['value'],
@@ -69,7 +68,8 @@ class MainController extends AbstractController
                 'type' => $word['type'],
                 'tags' => $word['tags'],
                 'example_sentence' => $word['example_sentence'],
-                'score' => $masteryScore,
+                //'score' => $masteryScore,
+                'score' => $word['score'] ?? 0,
             ];
         }
 
@@ -150,11 +150,14 @@ class MainController extends AbstractController
         $level = $request->query->get('level');
         $tag = $request->query->get('tag');
 
-        $words = $repo->findQuizWordsFSRS($level, $tag, $user->getId());
+        //$words = $repo->findQuizWordsFSRS($level, $tag, $user->getId());
+        $words = $repo->findByDifficultyAndTagOrderedByScore($level, $tag, $user->getId());
+
+        
 
         // ⚡ charger tous les mots pour les choix
         $allWords = $em->getConnection()
-            ->executeQuery("SELECT id, value, definition, example_sentence, typ, category FROM word")
+            ->executeQuery("SELECT id, value, definition, example_sentence, type, category FROM word")
             ->fetchAllAssociative();
 
         $byType = [];
@@ -249,7 +252,7 @@ class MainController extends AbstractController
                 'lapses' => $progress['lapses'],
                 'user' => $user->getId(),
                 'word' => $wordId,
-                'score' => $grade
+                'score' => $updated['score'],
             ]);
 
         } else {
@@ -266,7 +269,7 @@ class MainController extends AbstractController
                 'next_review' => $updated['next_review']->format('Y-m-d H:i:s'),
                 'last_review' => $updated['last_review']->format('Y-m-d H:i:s'),
                 'reps' => $updated['reps'],
-                'score' => $grade
+                'score' => $updated['score'],
             ]);
         }
 
@@ -310,5 +313,12 @@ class MainController extends AbstractController
             //return $this->json(['error' => 'An error occurred during import.'], 500);
             return $this->json(['error' => $e->getMessage()], 500);
         }
+    }
+
+
+    #[Route('/test')]
+    public function test(): JsonResponse
+    {
+        return $this->json(['ok' => true]);
     }
 }
